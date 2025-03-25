@@ -6,6 +6,8 @@ def switch_timeslot(day, slot):
     match state:
         case "Vorlesungen":
             lectures[weekdays[day]][slot] = "belegt" if lectures[weekdays[day]][slot] == "" else ""
+        case "Übungen":
+            temp[weekdays[day]][slot] = "belegt" if temp[weekdays[day]][slot] == "" else ""
         case _:
             raise Exception("State Error")
     
@@ -18,12 +20,31 @@ def reset_button_label(day, slot):
 
 def next_state():
     global state
+    global temp
     match state:
         case "Vorlesungen":
             for i in range(0, days):
                 for j in range(0, slots):  
                     reset_button_label(i, j)  
             state = "Übungen"
+            heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übungsgruppe, etc.) angeboten wird:")
+            title_label.grid(row=(slots+3), column=2, columnspan=(days-2))
+            title_entry.grid(row=(slots+4), column=2, columnspan=(days-2))
+        case "Übungen":
+            if (title_entry.get() != ""):
+                tutorials[title_entry.get()] = temp
+                temp = {}
+                for weekday in weekdays:
+                    temp[weekday] = [""] * slots
+                title_entry.delete(0, len(title_entry.get()))
+            else:
+                tutorials[("Uebung " + str(len(tutorials)+1))] = temp
+                temp = {}
+                for weekday in weekdays:
+                    temp[weekday] = [""] * slots
+            for i in range(0, days):
+                for j in range(0, slots):  
+                    reset_button_label(i, j)  
         case _:
             raise Exception("State Error")
     
@@ -36,6 +57,11 @@ days = len(weekdays)
 lectures = {}
 for weekday in weekdays:
     lectures[weekday] = [""] * slots
+tutorials = {}
+temp = {}
+for weekday in weekdays:
+    temp[weekday] = [""] * slots
+title = ""
 
 window = Tk()
 window.title("Stundenplaner")
@@ -66,12 +92,19 @@ for i in range(0, days):
         buttons[(i*slots)+j] = Button(window, text="frei", background="white smoke",command=lambda day=i, slot=j: switch_timeslot(day, slot))
 
 continue_button = Button(window, text="Weiter", command=lambda: next_state())
+finished_button = Button(window, text="Fertig", command=lambda: next())
+
+title_label = Label(window, text="Gib den Namen der Veranstaltung ein:")
+title_entry = Entry(window, textvariable=title)
 
 # Organize window
 heading.grid(row=1, column=1, columnspan=(days+1))
 
 for i, label in enumerate(weekday_labels):
-    label.grid(row=2, column=(2+i), padx=30)
+    label.grid(row=2, column=(2+i))
+
+for i in range(days):
+    window.columnconfigure((2+i), minsize=110)
 
 for i, label in enumerate(timeslot_labels):
     label.grid(row=(3+i), column=1)
@@ -80,7 +113,8 @@ for i in range(0, days):
     for j in range(0, slots):
         buttons[(i*slots)+j].grid(row=(3+j), column=(2+i), sticky="WENS")
 
-continue_button.grid(row=(slots+4), column=(days+1), sticky="WENS")
+continue_button.grid(row=(slots+4), column=(days), sticky="NS", ipadx=20)
+finished_button.grid(row=(slots+4), column=(days+1), sticky="NS", ipadx=20)
 
 #Spacing
 spacer[0].grid(row=0, column=0, padx=7)
@@ -91,3 +125,4 @@ window.config(menu=menu_bar)
 
 window.mainloop()
 print(lectures)
+print(tutorials)
