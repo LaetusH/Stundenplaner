@@ -60,7 +60,7 @@ def clear_input_UI():
 def switch_timeslot(day, slot):
     match state:
         case "Vorlesungen":
-            lectures[weekdays[day]][slot] = "belegt" if lectures[weekdays[day]][slot] == "" else ""
+            lectures[weekdays[day]][slot] = "Vorlesung" if lectures[weekdays[day]][slot] == "" else ""
         case "Übungen":
             temp[weekdays[day]][slot] = "belegt" if temp[weekdays[day]][slot] == "" else ""
         case _:
@@ -122,8 +122,60 @@ def collapse(timetable, open_tutorials):
                 if (timetable[weekday][i] == ""):
                     new_timetable = copy.deepcopy(timetable)
                     new_timetable[weekday][i] = name
-                    possible_timetables.append(collapse(new_timetable, new_open_tutorials))
+                    output = collapse(new_timetable, new_open_tutorials)
+                    if (isinstance(output, dict)):
+                        possible_timetables.append(output)
+                    else: 
+                        possible_timetables += output
     return possible_timetables
+
+
+def analyse_timetables(timetables):
+    num_of_days = 0
+    early_slots = 0
+    for day in timetables[0].values():
+        for i, slot in enumerate(day):
+            if (slot != ""):
+                if (i == 0):
+                    early_slots += 1
+                num_of_days += 1
+                break
+    
+    least_days = (num_of_days, timetables[0])
+    least_early_slots = (early_slots, timetables[0])
+    free_monday = {}
+    free_friday = {}
+
+    for timetable in timetables:
+        num_of_days = 0
+        early_slots = 0
+        monday = FALSE
+        friday = FALSE
+        for name, day in timetable.items():
+            for i, slot in enumerate(day):
+                if (slot != ""):
+                    if (i == 0):
+                        early_slots += 1
+                    if (name == "Montag"):
+                        monday = TRUE
+                    if (name == "Freitag"):
+                        friday = TRUE
+                    num_of_days += 1
+                    break
+    
+        if (num_of_days < least_days[0]):
+            least_days = (num_of_days, timetable)
+        if (early_slots < least_early_slots[0]):
+            least_early_slots = (early_slots, timetable)
+        if (not monday):
+            free_monday = timetable
+        if (not friday):
+            free_friday = timetable
+
+    print(least_days)
+    print(least_early_slots)
+    print(free_monday)
+    print(free_friday)
 
 
 def evaluate():
@@ -147,7 +199,7 @@ def evaluate():
 
     # The magic happens
     possible_timetables = collapse(lectures, tutorials)
-    print(possible_timetables)
+    analyse_timetables(possible_timetables)
 
     # Change UI
     clear_input_UI()
