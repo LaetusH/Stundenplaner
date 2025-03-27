@@ -57,6 +57,79 @@ def clear_input_UI():
     title_entry.destroy()
 
 
+def load_timetable(boxes, rectangels, timetables, direction=""):
+    global currentTimetable
+    match direction:
+        case "previous":
+            currentTimetable = (currentTimetable - 1 + len(timetables)) % len(timetables)
+        case "next":
+            currentTimetable = (currentTimetable + 1) % len(timetables)
+
+    timetable = timetables[currentTimetable]
+    for i, day in enumerate(timetable.values()):
+        for j, slot in enumerate(day):
+            if (slot == ""):
+                boxes[(i*slots)+j].itemconfig(rectangels[(i*slots)+j], fill="snow")
+            else:
+                boxes[(i*slots)+j].itemconfig(rectangels[(i*slots)+j], fill="pale turquoise")
+
+
+def load_timetable_UI(title, timetables):
+    global currentTimetable
+    currentTimetable = 0
+    window1 = Tk()
+    window1.title(title)
+
+    # Create window elements
+    spacer1 = []
+    for i in range(0, 3):
+        spacer1.append(Label(window1, text=""))
+
+    heading1 = Label(window1, text="Klicke alle Zeitslots mit fixen Veranstaltungen (Vorlesungen, etc.) an:")
+
+    weekday_labels1 = []
+    for i in range(0, days):
+        weekday_labels1.append(Label(window1, text=weekdays[i]))
+
+    timeslot_labels1 = []
+    for i in range(0, slots):
+        timeslot_labels1.append(Label(window1, text=timeslots[i]))
+
+    boxes = [None] * (days * slots)
+    rectangles = [None] * (days * slots)
+    for i in range(0, days):
+        for j in range(0, slots):
+            boxes[(i*slots)+j] = Canvas(window1, width=106, height=45)
+            rectangles[(i*slots)+j] = boxes[(i*slots)+j].create_rectangle(0, 0, 106, 45, fill="snow", outline="black")
+
+    previous_button = Button(window1, text="Vorheriger", command=lambda: load_timetable(boxes, rectangles, timetables, "previous"))
+    next_button = Button(window1, text="Nächster", command=lambda: load_timetable(boxes, rectangles, timetables, "next"))
+
+    # Organise the window
+    spacer1[0].grid(row=0, column=0, padx=7)
+    spacer1[1].grid(row=(slots+5), column=(days+2), padx=7)
+    spacer1[2].grid(row=(slots+3), column=1)
+
+    heading1.grid(row=1, column=1, columnspan=(days+1))
+
+    for i, label in enumerate(weekday_labels1):
+        label.grid(row=2, column=(2+i))
+
+    for i, label in enumerate(timeslot_labels1):
+        label.grid(row=(3+i), column=1)
+
+    for i in range(0, days):
+        for j in range(0, slots):
+            boxes[(i*slots)+j].grid(row=(3+j), column=(2+i))
+
+    previous_button.grid(row=(slots+4), column=2, sticky="NS", ipadx=15)
+    next_button.grid(row=(slots+4), column=(days+1), sticky="NS", ipadx=15)
+
+    load_timetable(boxes, rectangles, timetables)
+
+    window1.mainloop()
+
+
 def switch_timeslot(day, slot):
     match state:
         case "Vorlesungen":
@@ -67,12 +140,12 @@ def switch_timeslot(day, slot):
             raise Exception("State Error")
     
     buttons[(day*slots)+slot].config(text="frei") if buttons[(day*slots)+slot].cget("text") == "belegt" else buttons[(day*slots)+slot].config(text="belegt")
-    buttons[(day*slots)+slot].config(background="white smoke") if buttons[(day*slots)+slot].cget("background") == "pale turquoise" else buttons[(day*slots)+slot].config(background="pale turquoise")
+    buttons[(day*slots)+slot].config(background="snow") if buttons[(day*slots)+slot].cget("background") == "pale turquoise" else buttons[(day*slots)+slot].config(background="pale turquoise")
 
 
 def reset_button_label(day, slot):
     buttons[(day*slots)+slot].config(text="frei")
-    buttons[(day*slots)+slot].config(background="white smoke")
+    buttons[(day*slots)+slot].config(background="snow")
 
 
 def next_state():
@@ -141,10 +214,10 @@ def analyse_timetables(timetables):
                 num_of_days += 1
                 break
     
-    least_days = (num_of_days, timetables[0])
-    least_early_slots = (early_slots, timetables[0])
-    free_monday = {}
-    free_friday = {}
+    least_days = (num_of_days, [timetables[0]])
+    least_early_slots = (early_slots, [timetables[0]])
+    free_monday = []
+    free_friday = []
 
     for timetable in timetables:
         num_of_days = 0
@@ -164,18 +237,23 @@ def analyse_timetables(timetables):
                     break
     
         if (num_of_days < least_days[0]):
-            least_days = (num_of_days, timetable)
+            least_days = (num_of_days, [timetable])
+        elif (num_of_days == least_days[0]):
+            least_days[1].append(timetable)   
         if (early_slots < least_early_slots[0]):
-            least_early_slots = (early_slots, timetable)
+            least_early_slots = (early_slots, [timetable])
+        elif (early_slots == least_early_slots[0]):
+            least_early_slots[1].append(timetable)
         if (not monday):
-            free_monday = timetable
+            free_monday.append(timetable)
         if (not friday):
-            free_friday = timetable
+            free_friday.append(timetable)
 
     print(least_days)
     print(least_early_slots)
     print(free_monday)
     print(free_friday)
+    load_timetable_UI("Freitag", free_friday)
 
 
 def evaluate():
@@ -248,7 +326,7 @@ for i in range(0, slots):
 buttons = [None] * (days * slots)
 for i in range(0, days):
     for j in range(0, slots):
-        buttons[(i*slots)+j] = Button(window, text="frei", background="white smoke",command=lambda day=i, slot=j: switch_timeslot(day, slot))
+        buttons[(i*slots)+j] = Button(window, text="frei", background="snow", command=lambda day=i, slot=j: switch_timeslot(day, slot))
 
 continue_button = Button(window, text="Weiter", command=lambda: next_state())
 finished_button = Button(window, text="Fertig", command=lambda: evaluate())
