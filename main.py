@@ -1,5 +1,6 @@
 import copy
 
+import sys
 from tkinter import *
 from tkinter import ttk
 
@@ -106,7 +107,7 @@ def load_timetable_UI(title, timetables):
         for j in range(0, slots):
             boxes[(i*slots)+j] = Canvas(window1, width=106, height=45)
             rectangles[(i*slots)+j] = boxes[(i*slots)+j].create_rectangle(0, 0, 106, 45, fill="snow", outline="black")
-            texts[(i*slots)+j] = boxes[(i*slots)+j].create_text(106/2, 45/2, text="")
+            texts[(i*slots)+j] = boxes[(i*slots)+j].create_text(106/2, 45/2, text="", width=104)
 
     previous_button = Button(window1, text="Vorheriger", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "previous"))
     next_button = Button(window1, text="Nächster", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "next"))
@@ -209,6 +210,7 @@ def collapse(timetable, open_tutorials):
     return possible_timetables
 
 
+# Kann entfernt werden
 def analyse_timetables(timetables):
     num_of_days = 0
     early_slots = 0
@@ -263,6 +265,8 @@ def analyse_timetables(timetables):
 
 
 def get_results(timetables):
+    if (len(timetables) == 0):
+        return []
     criteria["earliest_slot"] = earliest_slot.current()
     criteria["latest_slot"] = latest_slot.current()
 
@@ -347,6 +351,9 @@ def update_results():
 
 
 def load_search_UI():
+    menu_bar.add_separator()
+    menu_bar.add_command(label="Speichern", command=lambda: save_file())
+
     num_of_criteria = len(checkboxes) + 2
     heading.grid(row=1, column=1, columnspan=2)
     heading.config(text="Wähle die Suchkriterien aus und lasse dir die Ergebnisse anzeigen")
@@ -393,12 +400,75 @@ def evaluate():
         del tutorials[name]
 
     # The magic happens
-    possible_timetables = collapse(lectures, tutorials)
+    if (len(tutorials) > 0):
+        possible_timetables = collapse(lectures, tutorials)
+    else:
+        possible_timetables = [lectures]
     #analyse_timetables(possible_timetables)
 
     # Change UI
     clear_input_UI()
     load_search_UI()
+
+
+def save_file():
+    output = ""
+    for day in lectures.values():
+        for slot in day:
+            output += slot + ",,"
+        output += ";;"
+    output += "::\n"
+    for name, tutorial in tutorials.items():
+        name = name.replace("Ä", "&$AE")
+        name = name.replace("Ö", "&$OE")
+        name = name.replace("Ü", "&$UE")
+        name = name.replace("ä", "&$ae")
+        name = name.replace("ö", "&$oe")
+        name = name.replace("ü", "&$ue")
+        output += name + ";;"
+        for day in tutorial.values():
+            for slot in day:
+                output += slot + ",,"
+            output += ";;"
+        output += "::\n"
+    with open("stundenplan.txt", "w+") as file:
+        file.write(output)
+
+
+def load_file():
+    global lectures
+    global tutorials
+    
+    with open("stundenplan.txt", "r") as file:
+        input = str(file.read())
+        input = input.replace("&$AE", "Ä")
+        input = input.replace("&$OE", "Ö")
+        input = input.replace("&$UE", "Ü")
+        input = input.replace("&$ae", "ä")
+        input = input.replace("&$oe", "ö")
+        input = input.replace("&$ue", "ü")
+        events = input.split("::\n")
+        lectures = {}
+        for weekday, day in zip(weekdays, events[0].split(";;")):
+            lectures[weekday] = []
+            for slot in day.split(",,"):
+                lectures[weekday].append(slot)
+            del lectures[weekday][slots]
+        del events[0]        
+        tutorials = {}
+        for event in events:
+            tutorial = event.split(";;")
+            name = tutorial[0]
+            del tutorial[0]
+            tutorials[name] = {}
+            for weekday, day in zip(weekdays, tutorial):
+                tutorials[name][weekday] = []
+                for slot in day.split(",,"):
+                    tutorials[name][weekday].append(slot)
+                del tutorials[name][weekday][slots]
+        del tutorials[""]
+
+    evaluate()
 
 
 
@@ -427,9 +497,7 @@ criteria["least_days"] = BooleanVar(value=FALSE)
 
 # Configure the Main Menu
 menu_bar = Menu(window)
-menu_bar.add_command(label="Speichern", command=lambda: print("Speichern"))
-menu_bar.add_separator()
-menu_bar.add_command(label="Laden", command=lambda: print("Laden"))
+menu_bar.add_command(label="Laden", command=lambda: load_file())
 
 # Create window objects
 spacer = []
