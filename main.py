@@ -1,8 +1,8 @@
 import copy
 
-import sys
 from tkinter import *
 from tkinter import ttk
+from tkinter import messagebox
 
 state = "Vorlesungen"
 
@@ -261,7 +261,6 @@ def analyse_timetables(timetables):
     print(least_early_slots)
     print(free_monday)
     print(free_friday)
-    #load_timetable_UI("Freitag", free_friday)
 
 
 def get_results(timetables):
@@ -399,12 +398,11 @@ def evaluate():
     for name in empty_tutorials:
         del tutorials[name]
 
-    # The magic happens
+    # Searches for all possible timetables
     if (len(tutorials) > 0):
         possible_timetables = collapse(lectures, tutorials)
     else:
         possible_timetables = [lectures]
-    #analyse_timetables(possible_timetables)
 
     # Change UI
     clear_input_UI()
@@ -433,42 +431,47 @@ def save_file():
         output += "::\n"
     with open("stundenplan.txt", "w+") as file:
         file.write(output)
+    messagebox.showinfo("Hinweis", "Erfolgreich gespeichert.", icon="info")
 
 
 def load_file():
     global lectures
     global tutorials
     
-    with open("stundenplan.txt", "r") as file:
-        input = str(file.read())
-        input = input.replace("&$AE", "Ä")
-        input = input.replace("&$OE", "Ö")
-        input = input.replace("&$UE", "Ü")
-        input = input.replace("&$ae", "ä")
-        input = input.replace("&$oe", "ö")
-        input = input.replace("&$ue", "ü")
-        events = input.split("::\n")
-        lectures = {}
-        for weekday, day in zip(weekdays, events[0].split(";;")):
-            lectures[weekday] = []
-            for slot in day.split(",,"):
-                lectures[weekday].append(slot)
-            del lectures[weekday][slots]
-        del events[0]        
-        tutorials = {}
-        for event in events:
-            tutorial = event.split(";;")
-            name = tutorial[0]
-            del tutorial[0]
-            tutorials[name] = {}
-            for weekday, day in zip(weekdays, tutorial):
-                tutorials[name][weekday] = []
+    try:
+        with open("stundenplan.txt", "r") as file:
+            input = str(file.read())
+            input = input.replace("&$AE", "Ä")
+            input = input.replace("&$OE", "Ö")
+            input = input.replace("&$UE", "Ü")
+            input = input.replace("&$ae", "ä")
+            input = input.replace("&$oe", "ö")
+            input = input.replace("&$ue", "ü")
+            events = input.split("::\n")
+            lectures = {}
+            for weekday, day in zip(weekdays, events[0].split(";;")):
+                lectures[weekday] = []
                 for slot in day.split(",,"):
-                    tutorials[name][weekday].append(slot)
-                del tutorials[name][weekday][slots]
-        del tutorials[""]
+                    lectures[weekday].append(slot)
+                del lectures[weekday][slots]
+            del events[0]        
+            tutorials = {}
+            for event in events:
+                tutorial = event.split(";;")
+                name = tutorial[0]
+                del tutorial[0]
+                tutorials[name] = {}
+                for weekday, day in zip(weekdays, tutorial):
+                    tutorials[name][weekday] = []
+                    for slot in day.split(",,"):
+                        tutorials[name][weekday].append(slot)
+                    del tutorials[name][weekday][slots]
+            del tutorials[""]
 
-    evaluate()
+        evaluate()
+    except:
+        messagebox.showinfo("Fehlermeldung", "Fehler beim Zugriff auf die Datei!", icon="error")
+        print("Fehler beim Zugriff auf die Datei!")
 
 
 
@@ -550,5 +553,3 @@ load_input_UI()
 window.config(menu=menu_bar)
 
 window.mainloop()
-print(lectures)
-print(tutorials)
