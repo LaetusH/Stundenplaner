@@ -4,11 +4,8 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import messagebox
 
-state = "Vorlesungen"
-
-
 def load_input_UI():
-    heading.grid(row=1, column=1, columnspan=(days+1))
+    heading.grid(row=1, column=2, columnspan=days)
     heading.config(text="Klicke alle Zeitslots mit fixen Veranstaltungen (Vorlesungen, etc.) an:")
 
     for i, label in enumerate(weekday_labels):
@@ -109,8 +106,8 @@ def load_timetable_UI(title, timetables):
             rectangles[(i*slots)+j] = boxes[(i*slots)+j].create_rectangle(0, 0, 106, 45, fill="snow", outline="black")
             texts[(i*slots)+j] = boxes[(i*slots)+j].create_text(106/2, 45/2, text="", width=104)
 
-    previous_button = Button(window1, text="Vorheriger", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "previous"))
-    next_button = Button(window1, text="Nächster", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "next"))
+    previous_button = Button(window1, text="Vorheriges", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "previous"))
+    next_button = Button(window1, text="Nächstes", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "next"))
 
     # Organise the window
     spacer1[0].grid(row=0, column=0, padx=7)
@@ -131,6 +128,10 @@ def load_timetable_UI(title, timetables):
 
     previous_button.grid(row=(slots+4), column=2, sticky="NS", ipadx=15)
     next_button.grid(row=(slots+4), column=(days+1), sticky="NS", ipadx=15)
+
+    if (len(timetables) < 2):
+        previous_button.config(state="disabled")
+        next_button.config(state="disabled")
 
     load_timetable(boxes, rectangles, texts, timetables)
 
@@ -164,9 +165,9 @@ def next_state():
                 for j in range(0, slots):  
                     reset_button_label(i, j)  
             state = "Übungen"
-            heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übungsgruppe, etc.) angeboten wird:")
-            title_label.grid(row=(slots+3), column=2, columnspan=(days-2))
-            title_entry.grid(row=(slots+4), column=2, columnspan=(days-2))
+            heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übung, etc.) parallel angeboten wird:")
+            title_label.grid(row=(slots+3), column=2, columnspan=(days-2), sticky="W")
+            title_entry.grid(row=(slots+4), column=2, columnspan=(days-2), sticky="W")
         case "Übungen":
             if (title_entry.get() != ""):
                 tutorials[title_entry.get()] = temp
@@ -218,47 +219,76 @@ def get_results(timetables):
 
     least_days = 5
     least_first_slots = 5
+    least_gaps = 30
 
-    if (criteria["least_days"].get() or criteria["least_first_slots"].get()):
+    if (criteria["least_days"].get() or criteria["least_first_slots"].get() or criteria["compact"].get()):
         num_of_days = 0
         first_slots = 0
+        num_of_gaps = 0
         for day in timetables[0].values():
+            day_marked = FALSE
+            gaps = 0
+            previous_event = FALSE
             for i, slot in enumerate(day):
                 if (slot != ""):
                     if (i == 0):
                         first_slots += 1
-                    num_of_days += 1
-                    break
+                    if (previous_event):
+                        num_of_gaps += gaps
+                    else:
+                        previous_event = TRUE
+                    day_marked = TRUE
+                elif (previous_event):
+                    gaps += 1
+            if (day_marked):
+                num_of_days += 1
         
         least_days = num_of_days
         least_first_slots = first_slots
+        least_gaps = num_of_gaps
 
         for timetable in timetables:
             num_of_days = 0
             first_slots = 0
+            num_of_gaps = 0
             for day in timetable.values():
+                day_marked = FALSE
+                gaps = 0
+                previous_event = FALSE
                 for i, slot in enumerate(day):
                     if (slot != ""):
                         if (i == 0):
                             first_slots += 1
-                        num_of_days += 1
-                        break
+                        if (previous_event):
+                            num_of_gaps += gaps
+                        else:
+                            previous_event = TRUE
+                        day_marked = TRUE
+                    elif (previous_event):
+                        gaps += 1
+                if (day_marked):
+                    num_of_days += 1
         
             if (num_of_days < least_days):
                 least_days = num_of_days
             if (first_slots < least_first_slots):
                 least_first_slots = first_slots
+            if (num_of_gaps < least_gaps):
+                least_gaps = num_of_gaps
 
     results = []
     for timetable in timetables:
         num_of_days = 0
         first_slots = 0
+        num_of_gaps = 0
         earliest_slot_fullfilled = TRUE
         latest_slot_fullfilled = TRUE
         monday = FALSE
         friday = FALSE
         for name, day in timetable.items():
             day_marked = FALSE
+            gaps = 0
+            previous_event = FALSE
             for i, slot in enumerate(day):
                 if (slot != ""):
                     if (i == 0):
@@ -270,26 +300,36 @@ def get_results(timetables):
                     if ((i < criteria["earliest_slot"]) and (slot != "Vorlesung")):
                         earliest_slot_fullfilled = FALSE
                     if ((i > criteria["latest_slot"]) and (slot != "Vorlesung")):
-                        latest_slot_fullfilled = FALSE    
-                    day_marked = TRUE        
+                        latest_slot_fullfilled = FALSE 
+                    if (previous_event):
+                        num_of_gaps += gaps
+                    else:
+                        previous_event = TRUE   
+                    day_marked = TRUE
+                elif (previous_event):
+                    gaps += 1        
             if (day_marked):
                 num_of_days += 1
 
 
         if ((not criteria["least_days"].get()) or (num_of_days <= least_days)):
             if ((not criteria["least_first_slots"].get()) or (first_slots <= least_first_slots)):
-                if ((not criteria["free_monday"].get()) or (not monday)):
-                    if ((not criteria["free_friday"].get()) or (not friday)):
-                        if (earliest_slot_fullfilled):
-                            if (latest_slot_fullfilled):
-                                results.append(timetable)
+                if ((not criteria["compact"].get()) or (num_of_gaps <= least_gaps)):
+                    if ((not criteria["free_monday"].get()) or (not monday)):
+                        if ((not criteria["free_friday"].get()) or (not friday)):
+                            if (earliest_slot_fullfilled):
+                                if (latest_slot_fullfilled):
+                                    results.append(timetable)
     return results
 
 
 def update_results():
     global possible_timetables
     num_of_results = len(get_results(possible_timetables))
-    show_results_button.config(text=f"{num_of_results} Ergebnisse anzeigen")
+    if (num_of_results == 1):
+        show_results_button.config(text=f"{num_of_results} Ergebnis anzeigen")
+    else:
+        show_results_button.config(text=f"{num_of_results} Ergebnisse anzeigen")
     if (num_of_results == 0):
         show_results_button.config(state="disabled")
     else:
@@ -307,7 +347,8 @@ def load_search_UI():
     checkboxes["least_days"].grid(row=2, column=1, sticky="W")
     checkboxes["free_monday"].grid(row=3, column=1, sticky="W")
     checkboxes["free_friday"].grid(row=4, column=1, sticky="W")
-    checkboxes["least_first_slots"].grid(row=5, column=1, sticky="W")
+    checkboxes["compact"].grid(row=5, column=1, sticky="W")
+    checkboxes["least_first_slots"].grid(row=6, column=1, sticky="W")
     earliest_slot.grid(row=(len(checkboxes)+2), column=2, sticky="W")
     latest_slot.grid(row=(len(checkboxes)+3), column=2, sticky="W")
 
@@ -384,6 +425,7 @@ def save_file():
 def load_file():
     global lectures
     global tutorials
+    global temp
     
     try:
         with open("stundenplan.txt", "r") as file:
@@ -395,13 +437,17 @@ def load_file():
             input = input.replace("&$oe", "ö")
             input = input.replace("&$ue", "ü")
             events = input.split("::\n")
+
+            # Load lectures
             lectures = {}
             for weekday, day in zip(weekdays, events[0].split(";;")):
                 lectures[weekday] = []
                 for slot in day.split(",,"):
                     lectures[weekday].append(slot)
                 del lectures[weekday][slots]
-            del events[0]        
+            del events[0] 
+
+            # Load tutorials
             tutorials = {}
             for event in events:
                 tutorial = event.split(";;")
@@ -415,6 +461,7 @@ def load_file():
                     del tutorials[name][weekday][slots]
             del tutorials[""]
 
+        temp = {}
         evaluate()
     except:
         messagebox.showinfo("Fehlermeldung", "Fehler beim Zugriff auf die Datei!", icon="error")
@@ -425,6 +472,7 @@ def load_file():
 weekdays = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]
 timeslots = ["08:00\n-\n10:00", "10:00\n-\n12:00", "12:00\n-\n14:00", "14:00\n-\n16:00", "16:00\n-\n18:00", "18:00\n-\n20:00"]
 
+state = "Vorlesungen"
 slots = len(timeslots)
 days = len(weekdays)
 lectures = {}
@@ -444,6 +492,7 @@ criteria["free_monday"] = BooleanVar(value=FALSE)
 criteria["free_friday"] = BooleanVar(value=FALSE)
 criteria["least_first_slots"] = BooleanVar(value=FALSE)
 criteria["least_days"] = BooleanVar(value=FALSE)
+criteria["compact"] = BooleanVar(value=FALSE)
 
 # Configure the Main Menu
 menu_bar = Menu(window)
@@ -472,8 +521,9 @@ for i in range(0, days):
 checkboxes = {}
 checkboxes["free_friday"] = Checkbutton(window, text="Freitag frei", variable=criteria["free_friday"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
 checkboxes["free_monday"] = Checkbutton(window, text="Montag frei", variable=criteria["free_monday"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["least_first_slots"] = Checkbutton(window, text="Wenigste 8:00 Uhr Veranstaltungen", variable=criteria["least_first_slots"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["least_days"] = Checkbutton(window, text="Wenigste Tage", variable=criteria["least_days"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
+checkboxes["least_first_slots"] = Checkbutton(window, text="Möglichst wenige 8:00 Uhr Veranstaltungen", variable=criteria["least_first_slots"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
+checkboxes["least_days"] = Checkbutton(window, text="Möglichst wenige Tage", variable=criteria["least_days"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
+checkboxes["compact"] = Checkbutton(window, text="Möglichst wenig Lücken", variable=criteria["compact"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
 
 start_hours = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"]
 earliest_slot = ttk.Combobox(window, state="readonly", values=start_hours)
@@ -492,7 +542,7 @@ finished_button = Button(window, text="Fertig", command=lambda: evaluate())
 show_results_button = Button(window, text="0 Ergebnisse anzeigen", command=lambda: load_timetable_UI("Ergebnisse", get_results(possible_timetables)))
 
 title_label = Label(window, text="Gib den Namen der Veranstaltung ein:")
-title_entry = Entry(window, textvariable=title)
+title_entry = Entry(window, textvariable=title, width=40)
 
 # Organize window
 load_input_UI()
