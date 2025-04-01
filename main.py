@@ -210,59 +210,6 @@ def collapse(timetable, open_tutorials):
     return possible_timetables
 
 
-# Kann entfernt werden
-def analyse_timetables(timetables):
-    num_of_days = 0
-    early_slots = 0
-    for day in timetables[0].values():
-        for i, slot in enumerate(day):
-            if (slot != ""):
-                if (i == 0):
-                    early_slots += 1
-                num_of_days += 1
-                break
-    
-    least_days = (num_of_days, [timetables[0]])
-    least_early_slots = (early_slots, [timetables[0]])
-    free_monday = []
-    free_friday = []
-
-    for timetable in timetables:
-        num_of_days = 0
-        early_slots = 0
-        monday = FALSE
-        friday = FALSE
-        for name, day in timetable.items():
-            for i, slot in enumerate(day):
-                if (slot != ""):
-                    if (i == 0):
-                        early_slots += 1
-                    if (name == "Montag"):
-                        monday = TRUE
-                    if (name == "Freitag"):
-                        friday = TRUE
-                    num_of_days += 1
-                    break
-    
-        if (num_of_days < least_days[0]):
-            least_days = (num_of_days, [timetable])
-        elif (num_of_days == least_days[0]):
-            least_days[1].append(timetable)   
-        if (early_slots < least_early_slots[0]):
-            least_early_slots = (early_slots, [timetable])
-        elif (early_slots == least_early_slots[0]):
-            least_early_slots[1].append(timetable)
-        if (not monday):
-            free_monday.append(timetable)
-        if (not friday):
-            free_friday.append(timetable)
-
-    print(least_days)
-    print(least_early_slots)
-    print(free_monday)
-    print(free_friday)
-
-
 def get_results(timetables):
     if (len(timetables) == 0):
         return []
