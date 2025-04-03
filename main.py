@@ -1,4 +1,5 @@
 import copy
+import os
 
 from tkinter import *
 from tkinter import ttk
@@ -337,8 +338,10 @@ def update_results():
 
 
 def load_search_UI():
-    menu_bar.add_separator()
-    menu_bar.add_command(label="Speichern", command=lambda: save_file())
+    global state
+    if (state != "Suche"):
+        menu_bar.add_separator()
+        menu_bar.add_command(label="Speichern", command=lambda: save_file())
 
     num_of_criteria = len(checkboxes) + 2
     heading.grid(row=1, column=1, columnspan=2)
@@ -363,28 +366,31 @@ def load_search_UI():
     spacer[1].grid(row=(num_of_criteria+4), column=7, padx=7)
     spacer[2].grid(row=(num_of_criteria+2), column=1)
 
+    state = "Suche"
     update_results()
 
 
 def evaluate():
     global possible_timetables
-    next_state()
+    global state
+    if (state != "Suche"):
+        next_state()
 
-    # Remove empty tutorials
-    empty_tutorials = []
-    for name, tutorial in tutorials.items():
-        marked = FALSE
-        for weekday in tutorial.values():
-            for slot in weekday:
-                if (slot != ""):
-                    marked = TRUE
+        # Remove empty tutorials
+        empty_tutorials = []
+        for name, tutorial in tutorials.items():
+            marked = FALSE
+            for weekday in tutorial.values():
+                for slot in weekday:
+                    if (slot != ""):
+                        marked = TRUE
+                        break
+                if (marked):
                     break
-            if (marked):
-                break
-        if (not marked):
-            empty_tutorials.append(name)
-    for name in empty_tutorials:
-        del tutorials[name]
+            if (not marked):
+                empty_tutorials.append(name)
+        for name in empty_tutorials:
+            del tutorials[name]
 
     # Searches for all possible timetables
     if (len(tutorials) > 0):
@@ -417,7 +423,8 @@ def save_file():
                 output += slot + ",,"
             output += ";;"
         output += "::\n"
-    with open("stundenplan.txt", "w+") as file:
+    
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "stundenplan.txt"), "w+") as file:
         file.write(output)
     messagebox.showinfo("Hinweis", "Erfolgreich gespeichert.", icon="info")
 
@@ -426,9 +433,9 @@ def load_file():
     global lectures
     global tutorials
     global temp
-    
+
     try:
-        with open("stundenplan.txt", "r") as file:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "stundenplan.txt"), "r") as file:
             input = str(file.read())
             input = input.replace("&$AE", "Ä")
             input = input.replace("&$OE", "Ö")
@@ -462,10 +469,11 @@ def load_file():
             del tutorials[""]
 
         temp = {}
+        messagebox.showinfo("Hinweis", "Datei erfolgreich geladen.", icon="info")
         evaluate()
-    except:
+    except Exception as error:
         messagebox.showinfo("Fehlermeldung", "Fehler beim Zugriff auf die Datei!", icon="error")
-        print("Fehler beim Zugriff auf die Datei!")
+        print("Fehler beim Zugriff auf die Datei!", error)
 
 
 
