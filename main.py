@@ -7,7 +7,7 @@ from tkinter import messagebox
 
 def load_input_UI():
     heading.grid(row=1, column=2, columnspan=days)
-    heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übung, etc.) parallel angeboten wird:")
+    heading.config(text="Klicke alle Zeitslots für eine Veranstaltung so oft an, dass die korrekte Art der Veranstaltung ausgewählt ist:")
     title_label.grid(row=(slots+3), column=2, columnspan=(days-2), sticky="W")
     title_entry.grid(row=(slots+4), column=2, columnspan=(days-2), sticky="W")
 
@@ -60,7 +60,7 @@ def clear_input_UI():
     title_entry.grid_forget()
 
 
-def load_timetable(boxes, rectangels, texts, timetables, direction=""):
+def load_timetable(boxes, rectangels, texts, heading1, timetables, direction=""):
     global currentTimetable
     match direction:
         case "previous":
@@ -68,6 +68,7 @@ def load_timetable(boxes, rectangels, texts, timetables, direction=""):
         case "next":
             currentTimetable = (currentTimetable + 1) % len(timetables)
 
+    heading1.config(text=f"Dieser Stundenplan erfüllt die ausgewählten Kriterien: ({currentTimetable + 1}/{len(timetables)})")
     timetable = timetables[currentTimetable]
     for i, day in enumerate(timetable.values()):
         for j, slot in enumerate(day):
@@ -90,8 +91,8 @@ def load_timetable_UI(title, timetables):
     for i in range(0, 3):
         spacer1.append(Label(window1, text=""))
 
-    heading1 = Label(window1, text="Hier muss noch Text hin!")
-
+    heading1 = Label(window1, text=f"Dieser Stundenplan erfüllt die ausgewählten Kriterien: (1/{len(timetables)})")
+    
     weekday_labels1 = []
     for i in range(0, days):
         weekday_labels1.append(Label(window1, text=weekdays[i]))
@@ -109,8 +110,8 @@ def load_timetable_UI(title, timetables):
             rectangles[(i*slots)+j] = boxes[(i*slots)+j].create_rectangle(0, 0, 106, 45, fill="snow", outline="black")
             texts[(i*slots)+j] = boxes[(i*slots)+j].create_text(106/2, 45/2, text="", width=104)
 
-    previous_button = Button(window1, text="Vorheriges", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "previous"))
-    next_button = Button(window1, text="Nächstes", command=lambda: load_timetable(boxes, rectangles, texts, timetables, "next"))
+    previous_button = Button(window1, text="Vorheriges", command=lambda: load_timetable(boxes, rectangles, texts, heading1, timetables, "previous"))
+    next_button = Button(window1, text="Nächstes", command=lambda: load_timetable(boxes, rectangles, texts, heading1, timetables, "next"))
 
     # Organise the window
     spacer1[0].grid(row=0, column=0, padx=7)
@@ -136,7 +137,7 @@ def load_timetable_UI(title, timetables):
         previous_button.config(state="disabled")
         next_button.config(state="disabled")
 
-    load_timetable(boxes, rectangles, texts, timetables)
+    load_timetable(boxes, rectangles, texts, heading1, timetables)
 
     window1.mainloop()
 
@@ -182,8 +183,8 @@ def next_state():
 
 def collapse(timetable, open_tutorials):
     if (len(open_tutorials) == 0):
-        return timetable
-    
+        return [timetable]
+
     new_open_tutorials = {}
     for name, tutorial in open_tutorials.items():
         new_open_tutorials[name] = tutorial
@@ -386,22 +387,39 @@ def evaluate():
         for name in empty_events:
             del events[name]
 
-    # Searches for all possible timetables
+    # Search for all possible timetables
     lectures = {}
     for weekday in weekdays:
         lectures[weekday] = [""] * slots
     if (len(events) > 0):
-        events_copy = copy.deepcopy(events)
+        tutorials = copy.deepcopy(events)
+        # Seperate lectures and tutorials
         for name, event in events.items():
             for weekday, day in event.items():
                 for i, slot in enumerate(day):
                     if (slot == "Vorlesung"):
                         lectures[weekday][i] = name + " - VL"
-                        events_copy[name][weekday][i] = ""
+                        tutorials[name][weekday][i] = ""
                     if (slot == "Zentralübung"):
                         lectures[weekday][i] = name + " - ZÜ"
-                        events_copy[name][weekday][i] = ""
-        possible_timetables = collapse(lectures, events_copy)
+                        tutorials[name][weekday][i] = ""
+
+        # Remove empty tutorials
+        empty_tutorials = []
+        for name, tutorial in tutorials.items():
+            marked = FALSE
+            for weekday in tutorial.values():
+                for slot in weekday:
+                    if (slot != ""):
+                        marked = TRUE
+                        break
+                if (marked):
+                    break
+            if (not marked):
+                empty_tutorials.append(name)
+        for name in empty_tutorials:
+            del tutorials[name]
+        possible_timetables = collapse(lectures, tutorials)
     else:
         possible_timetables = [lectures]
 
