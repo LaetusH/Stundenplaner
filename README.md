@@ -27,11 +27,9 @@ Lade die Datei *main.py* herunter. Tippe dann in eine Konsole deiner Wahl den Be
     
 ## Nutzung
 
-+ Nach dem Start des Programms kannst du zuerst alle Zeitslots auswählen, in denen zeitlich nicht flexible Veranstaltungen (z.B. Vorlesungen) stattfinden.
++ Nach dem Start des Programms kannst du alle Zeitslots auswählen, in denen Veranstaltungen (z.B. Vorlesungen, Übungen) stattfinden. Durch mehrmaliges Klicken kannst du die Art der Veranstaltung auswählen. Dabei wird angenommen, dass Vorlesungen und Zentralübungen immer besucht werden müssen und bei Übungen genau eine der parallelen Gruppen ausgewählt werden kann. Du solltest auch einen Titel für die Veranstaltung eingeben, damit du sie später wiedererkennen kannst.
 
-+ Mit **Weiter** kommst du zur Auswahl der Veranstaltungen, die parallel stattfinden (z.B. Übungen). Hier kannst du einen Titel für die Veranstaltung eingeben und alle parallel stattfindenden Gruppen der selben Veranstaltung auswählen.
-
-+ Mit erneutem Drücken auf **Weiter** kannst du die nächste Veranstaltung eingeben.
++ Mit **Weiter** kommst du zur Auswahl der nächsten Veranstaltung.
 
 + Hast du alle Veranstaltungen eingegeben drücke **Fertig**. Im folgenden Menü hast du die Möglichkeit verschiedene Kriterien auszuwählen anhand derer die zutreffenden Stundenpläne ausgewählt werden. Diese kannst du dir mit Klick auf den unteren Knopf anzeigen lassen.
 
