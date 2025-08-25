@@ -7,7 +7,9 @@ from tkinter import messagebox
 
 def load_input_UI():
     heading.grid(row=1, column=2, columnspan=days)
-    heading.config(text="Klicke alle Zeitslots mit fixen Veranstaltungen (Vorlesungen, etc.) an:")
+    heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übung, etc.) parallel angeboten wird:")
+    title_label.grid(row=(slots+3), column=2, columnspan=(days-2), sticky="W")
+    title_entry.grid(row=(slots+4), column=2, columnspan=(days-2), sticky="W")
 
     for i, label in enumerate(weekday_labels):
         label.grid(row=2, column=(2+i))
@@ -88,7 +90,7 @@ def load_timetable_UI(title, timetables):
     for i in range(0, 3):
         spacer1.append(Label(window1, text=""))
 
-    heading1 = Label(window1, text="Klicke alle Zeitslots mit fixen Veranstaltungen (Vorlesungen, etc.) an:")
+    heading1 = Label(window1, text="Hier muss noch Text hin!")
 
     weekday_labels1 = []
     for i in range(0, days):
@@ -141,19 +143,17 @@ def load_timetable_UI(title, timetables):
 
 def switch_timeslot(day, slot):
     match state:
-        case "Vorlesungen":
-            lectures[weekdays[day]][slot] = "Vorlesung" if lectures[weekdays[day]][slot] == "" else ""
-        case "Übungen":
-            temp[weekdays[day]][slot] = "belegt" if temp[weekdays[day]][slot] == "" else ""
+        case "Eingabe":
+            temp[weekdays[day]][slot] = event_types[(event_types.index(temp[weekdays[day]][slot]) + 1) % len(event_types)]
         case _:
             raise Exception("State Error")
     
-    buttons[(day*slots)+slot].config(text="frei") if buttons[(day*slots)+slot].cget("text") == "belegt" else buttons[(day*slots)+slot].config(text="belegt")
-    buttons[(day*slots)+slot].config(background="snow") if buttons[(day*slots)+slot].cget("background") == "pale turquoise" else buttons[(day*slots)+slot].config(background="pale turquoise")
+    buttons[(day*slots)+slot].config(text=temp[weekdays[day]][slot])
+    buttons[(day*slots)+slot].config(background="snow") if temp[weekdays[day]][slot] == "" else buttons[(day*slots)+slot].config(background="pale turquoise")
 
 
 def reset_button_label(day, slot):
-    buttons[(day*slots)+slot].config(text="frei")
+    buttons[(day*slots)+slot].config(text="")
     buttons[(day*slots)+slot].config(background="snow")
 
 
@@ -161,23 +161,15 @@ def next_state():
     global state
     global temp
     match state:
-        case "Vorlesungen":
-            for i in range(0, days):
-                for j in range(0, slots):  
-                    reset_button_label(i, j)  
-            state = "Übungen"
-            heading.config(text="Klicke alle Zeitslots an, in denen die selbe Veranstaltung (Übung, etc.) parallel angeboten wird:")
-            title_label.grid(row=(slots+3), column=2, columnspan=(days-2), sticky="W")
-            title_entry.grid(row=(slots+4), column=2, columnspan=(days-2), sticky="W")
-        case "Übungen":
+        case "Eingabe":
             if (title_entry.get() != ""):
-                tutorials[title_entry.get()] = temp
+                events[title_entry.get()] = temp
                 temp = {}
                 for weekday in weekdays:
                     temp[weekday] = [""] * slots
                 title_entry.delete(0, len(title_entry.get()))
             else:
-                tutorials[("Übung " + str(len(tutorials)+1))] = temp
+                events[("Modul " + str(len(events)+1))] = temp
                 temp = {}
                 for weekday in weekdays:
                     temp[weekday] = [""] * slots
@@ -212,6 +204,7 @@ def collapse(timetable, open_tutorials):
     return possible_timetables
 
 
+# Returns timetables that satisfy the selected criteria 
 def get_results(timetables):
     if (len(timetables) == 0):
         return []
@@ -324,6 +317,7 @@ def get_results(timetables):
     return results
 
 
+# Updates the visibility of the show results button according to the number of results
 def update_results():
     global possible_timetables
     num_of_results = len(get_results(possible_timetables))
@@ -341,7 +335,7 @@ def load_search_UI():
     global state
     if (state != "Suche"):
         menu_bar.add_separator()
-        menu_bar.add_command(label="Speichern", command=lambda: save_file())
+        menu_bar.add_command(label="Speichern", command=save_file)
 
     num_of_criteria = len(checkboxes) + 2
     heading.grid(row=1, column=1, columnspan=2)
@@ -376,11 +370,11 @@ def evaluate():
     if (state != "Suche"):
         next_state()
 
-        # Remove empty tutorials
-        empty_tutorials = []
-        for name, tutorial in tutorials.items():
+        # Remove empty events
+        empty_events = []
+        for name, event in events.items():
             marked = FALSE
-            for weekday in tutorial.values():
+            for weekday in event.values():
                 for slot in weekday:
                     if (slot != ""):
                         marked = TRUE
@@ -388,13 +382,26 @@ def evaluate():
                 if (marked):
                     break
             if (not marked):
-                empty_tutorials.append(name)
-        for name in empty_tutorials:
-            del tutorials[name]
+                empty_events.append(name)
+        for name in empty_events:
+            del events[name]
 
     # Searches for all possible timetables
-    if (len(tutorials) > 0):
-        possible_timetables = collapse(lectures, tutorials)
+    lectures = {}
+    for weekday in weekdays:
+        lectures[weekday] = [""] * slots
+    if (len(events) > 0):
+        events_copy = copy.deepcopy(events)
+        for name, event in events.items():
+            for weekday, day in event.items():
+                for i, slot in enumerate(day):
+                    if (slot == "Vorlesung"):
+                        lectures[weekday][i] = name + " - VL"
+                        events_copy[name][weekday][i] = ""
+                    if (slot == "Zentralübung"):
+                        lectures[weekday][i] = name + " - ZÜ"
+                        events_copy[name][weekday][i] = ""
+        possible_timetables = collapse(lectures, events_copy)
     else:
         possible_timetables = [lectures]
 
@@ -405,12 +412,7 @@ def evaluate():
 
 def save_file():
     output = ""
-    for day in lectures.values():
-        for slot in day:
-            output += slot + ",,"
-        output += ";;"
-    output += "::\n"
-    for name, tutorial in tutorials.items():
+    for name, event in events.items():
         name = name.replace("Ä", "&$AE")
         name = name.replace("Ö", "&$OE")
         name = name.replace("Ü", "&$UE")
@@ -418,7 +420,7 @@ def save_file():
         name = name.replace("ö", "&$oe")
         name = name.replace("ü", "&$ue")
         output += name + ";;"
-        for day in tutorial.values():
+        for day in event.values():
             for slot in day:
                 output += slot + ",,"
             output += ";;"
@@ -430,8 +432,7 @@ def save_file():
 
 
 def load_file():
-    global lectures
-    global tutorials
+    global events
     global temp
 
     try:
@@ -443,30 +444,21 @@ def load_file():
             input = input.replace("&$ae", "ä")
             input = input.replace("&$oe", "ö")
             input = input.replace("&$ue", "ü")
-            events = input.split("::\n")
-
-            # Load lectures
-            lectures = {}
-            for weekday, day in zip(weekdays, events[0].split(";;")):
-                lectures[weekday] = []
-                for slot in day.split(",,"):
-                    lectures[weekday].append(slot)
-                del lectures[weekday][slots]
-            del events[0] 
+            data = input.split("::\n")
 
             # Load tutorials
-            tutorials = {}
-            for event in events:
-                tutorial = event.split(";;")
-                name = tutorial[0]
-                del tutorial[0]
-                tutorials[name] = {}
-                for weekday, day in zip(weekdays, tutorial):
-                    tutorials[name][weekday] = []
+            events = {}
+            for datum in data:
+                event = datum.split(";;")
+                name = event[0]
+                del event[0]
+                events[name] = {}
+                for weekday, day in zip(weekdays, event):
+                    events[name][weekday] = []
                     for slot in day.split(",,"):
-                        tutorials[name][weekday].append(slot)
-                    del tutorials[name][weekday][slots]
-            del tutorials[""]
+                        events[name][weekday].append(slot)
+                    del events[name][weekday][slots]
+            del events[""]
 
         temp = {}
         messagebox.showinfo("Hinweis", "Datei erfolgreich geladen.", icon="info")
@@ -479,14 +471,12 @@ def load_file():
 
 weekdays = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag"]
 timeslots = ["08:00\n-\n10:00", "10:00\n-\n12:00", "12:00\n-\n14:00", "14:00\n-\n16:00", "16:00\n-\n18:00", "18:00\n-\n20:00"]
+event_types = ["", "Vorlesung", "Zentralübung", "Übung"]
 
-state = "Vorlesungen"
+state = "Eingabe"
 slots = len(timeslots)
 days = len(weekdays)
-lectures = {}
-for weekday in weekdays:
-    lectures[weekday] = [""] * slots
-tutorials = {}
+events = {}
 temp = {}
 for weekday in weekdays:
     temp[weekday] = [""] * slots
@@ -511,7 +501,7 @@ spacer = []
 for i in range(0, 3):
     spacer.append(Label(window, text=""))
 
-heading = Label(window, text="Klicke alle Zeitslots mit fixen Veranstaltungen (Vorlesungen, etc.) an:")
+heading = Label(window, text="Lorem ipsum")
 
 weekday_labels = []
 for i in range(0, days):
@@ -524,14 +514,14 @@ for i in range(0, slots):
 buttons = [None] * (days * slots)
 for i in range(0, days):
     for j in range(0, slots):
-        buttons[(i*slots)+j] = Button(window, text="frei", background="snow", command=lambda day=i, slot=j: switch_timeslot(day, slot))
+        buttons[(i*slots)+j] = Button(window, text="", background="snow", command=lambda day=i, slot=j: switch_timeslot(day, slot))
     
 checkboxes = {}
-checkboxes["free_friday"] = Checkbutton(window, text="Freitag frei", variable=criteria["free_friday"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["free_monday"] = Checkbutton(window, text="Montag frei", variable=criteria["free_monday"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["least_first_slots"] = Checkbutton(window, text="Möglichst wenige 8:00 Uhr Veranstaltungen", variable=criteria["least_first_slots"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["least_days"] = Checkbutton(window, text="Möglichst wenige Tage", variable=criteria["least_days"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
-checkboxes["compact"] = Checkbutton(window, text="Möglichst wenig Lücken", variable=criteria["compact"], onvalue=TRUE, offvalue=FALSE, command=lambda: update_results())
+checkboxes["free_friday"] = Checkbutton(window, text="Freitag frei", variable=criteria["free_friday"], onvalue=TRUE, offvalue=FALSE, command=update_results)
+checkboxes["free_monday"] = Checkbutton(window, text="Montag frei", variable=criteria["free_monday"], onvalue=TRUE, offvalue=FALSE, command=update_results)
+checkboxes["least_first_slots"] = Checkbutton(window, text="Möglichst wenige 8:00 Uhr Veranstaltungen", variable=criteria["least_first_slots"], onvalue=TRUE, offvalue=FALSE, command=update_results)
+checkboxes["least_days"] = Checkbutton(window, text="Möglichst wenige Tage", variable=criteria["least_days"], onvalue=TRUE, offvalue=FALSE, command=update_results)
+checkboxes["compact"] = Checkbutton(window, text="Möglichst wenig Lücken", variable=criteria["compact"], onvalue=TRUE, offvalue=FALSE, command=update_results)
 
 start_hours = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"]
 earliest_slot = ttk.Combobox(window, state="readonly", values=start_hours)
@@ -545,8 +535,8 @@ latest_slot.current(len(end_hours)-1)
 earliest_slot_label = Label(window, text="Früheste Uhrzeit:")
 latest_slot_label = Label(window, text="Späteste Uhrzeit:")
 
-continue_button = Button(window, text="Weiter", command=lambda: next_state())
-finished_button = Button(window, text="Fertig", command=lambda: evaluate())
+continue_button = Button(window, text="Weiter", command=next_state)
+finished_button = Button(window, text="Fertig", command=evaluate)
 show_results_button = Button(window, text="0 Ergebnisse anzeigen", command=lambda: load_timetable_UI("Ergebnisse", get_results(possible_timetables)))
 
 title_label = Label(window, text="Gib den Namen der Veranstaltung ein:")
