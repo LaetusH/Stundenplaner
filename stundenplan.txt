@@ -1,6 +1,5 @@
-,,,,,,Vorlesung,,,,,,;;Vorlesung,,Vorlesung,,,,,,,,,,;;,,Vorlesung,,,,,,,,,,;;,,Vorlesung,,Vorlesung,,,,,,,,;;,,,,,,,,,,,,;;::
-Algorithmen und Datenstrukturen;;belegt,,belegt,,,,,,,,,,;;,,,,,,belegt,,,,,,;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;belegt,,,,,,,,,,,,;;::
-Wahrscheinlichkeitstheorie;;belegt,,,,,,,,,,,,;;,,,,,,,,belegt,,,,;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;,,belegt,,belegt,,,,,,,,;;::
-Technische Grundlagen der Informatik;;,,,,belegt,,,,,,,,;;,,,,belegt,,,,,,,,;;,,,,,,,,,,,,;;belegt,,,,,,,,,,,,;;,,,,,,,,,,,,;;::
-Programmieren II;;,,,,,,,,,,,,;;,,,,,,belegt,,,,,,;;,,,,,,belegt,,,,,,;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;::
-Datenbanken;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;belegt,,,,belegt,,,,,,,,;;,,,,,,,,,,,,;;,,belegt,,belegt,,,,,,,,;;::
+Algorithmen und Datenstrukturen;;belegt,,belegt,,,,,,,,,,;;,,,,,,belegt,,,,,,;;,,,,,,,,,,,,;;,,,,Vorlesung,,,,,,,,;;belegt,,,,,,,,,,,,;;::
+Wahrscheinlichkeitstheorie;;belegt,,,,,,,,,,,,;;,,Vorlesung,,,,,,belegt,,,,;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;,,belegt,,belegt,,,,,,,,;;::
+Technische Grundlagen der Informatik;;,,,,belegt,,Vorlesung,,,,,,;;,,,,belegt,,,,,,,,;;,,,,,,,,,,,,;;belegt,,,,,,,,,,,,;;,,,,,,,,,,,,;;::
+Programmieren II;;,,,,,,,,,,,,;;Zentral&$uebung,,,,,,belegt,,,,,,;;,,,,,,belegt,,,,,,;;,,Vorlesung,,,,,,,,,,;;,,,,,,,,,,,,;;::
+Datenbanken;;,,,,,,,,,,,,;;,,,,,,,,,,,,;;belegt,,Vorlesung,,belegt,,,,,,,,;;,,,,,,,,,,,,;;,,belegt,,belegt,,,,,,,,;;::
