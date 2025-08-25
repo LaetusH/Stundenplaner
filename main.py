@@ -504,7 +504,7 @@ criteria["compact"] = BooleanVar(value=FALSE)
 
 # Configure the Main Menu
 menu_bar = Menu(window)
-menu_bar.add_command(label="Laden", command=lambda: load_file())
+menu_bar.add_command(label="Laden", command=load_file)
 
 # Create window objects
 spacer = []
