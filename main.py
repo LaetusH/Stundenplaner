@@ -164,13 +164,13 @@ def next_state():
     match state:
         case "Eingabe":
             if (title_entry.get() != ""):
-                events[title_entry.get()] = temp
+                all_events[title_entry.get()] = temp
                 temp = {}
                 for weekday in weekdays:
                     temp[weekday] = [""] * slots
                 title_entry.delete(0, len(title_entry.get()))
             else:
-                events[("Modul " + str(len(events)+1))] = temp
+                all_events[("Modul " + str(len(all_events)+1))] = temp
                 temp = {}
                 for weekday in weekdays:
                     temp[weekday] = [""] * slots
@@ -347,33 +347,82 @@ def load_search_UI():
     checkboxes["free_friday"].grid(row=4, column=1, sticky="W")
     checkboxes["compact"].grid(row=5, column=1, sticky="W")
     checkboxes["least_first_slots"].grid(row=6, column=1, sticky="W")
-    earliest_slot.grid(row=(len(checkboxes)+2), column=2, sticky="W")
-    latest_slot.grid(row=(len(checkboxes)+3), column=2, sticky="W")
+    earliest_slot.grid(row=num_of_criteria, column=2, sticky="W")
+    latest_slot.grid(row=(num_of_criteria+1), column=2, sticky="W")
 
-    earliest_slot_label.grid(row=(len(checkboxes)+2), column=1, sticky="W")
-    latest_slot_label.grid(row=(len(checkboxes)+3), column=1, sticky="W")
+    earliest_slot_label.grid(row=num_of_criteria, column=1, sticky="W")
+    latest_slot_label.grid(row=(num_of_criteria+1), column=1, sticky="W")
 
-    show_results_button.grid(row=(num_of_criteria+3), column=1, columnspan=2, sticky="NS", ipadx=20)
+    select_events_button.grid(row=(num_of_criteria+3), column=1, columnspan=2, sticky="NS", ipadx=20)
+
+    show_results_button.grid(row=(num_of_criteria+5), column=1, columnspan=2, sticky="NS", ipadx=20)
     show_results_button.config(state="disabled")
 
     # Spacing
     spacer[0].grid(row=0, column=0, padx=7)
-    spacer[1].grid(row=(num_of_criteria+4), column=7, padx=7)
+    spacer[1].grid(row=(num_of_criteria+6), column=7, padx=7)
     spacer[2].grid(row=(num_of_criteria+2), column=1)
+    spacer[3].grid(row=(num_of_criteria+4), column=1)
 
     state = "Suche"
     update_results()
 
 
+def use_selection(window2, selection):
+    global events
+    events = {}
+    for name, val in selection.items():
+        if (val.get()):
+            events[name] = all_events[name]
+    window2.destroy()
+    evaluate()
+
+
+def load_select_UI():
+    window2 = Toplevel()
+    window2.title(title)
+
+    # Create window elements
+    spacer2 = []
+    for i in range(0, 3):
+        spacer2.append(Label(window2, text=""))
+
+    selection = {}
+    checkboxes = {}
+    for name in all_events.keys():
+        if name in events:
+            selection[name] = BooleanVar(value=TRUE)
+        else:
+            selection[name] = BooleanVar(value=FALSE)
+        checkboxes[name] = Checkbutton(window2, text=name, variable=selection[name], onvalue=TRUE, offvalue=FALSE)
+
+    finished_button2 = Button(window2, text="Fertig", command=lambda: use_selection(window2, selection))
+
+    heading2 = Label(window2, text="Wähle die Module aus, die abgebildet werden sollen: ")
+
+    # Organise the window
+    spacer2[0].grid(row=0, column=0, padx=7)
+    heading2.grid(row=1, column=1, columnspan=1)
+
+    for i, name in enumerate(checkboxes.keys()):
+        checkboxes[name].grid(row=2+i, column=1, sticky="W")
+
+    spacer2[2].grid(row=(len(all_events)+3), column=1)
+    finished_button2.grid(row=(len(all_events)+4), column=1, sticky="NS", ipadx=20)
+    spacer2[1].grid(row=(len(all_events)+5), column=2, padx=7)
+
+    window2.mainloop()
+
+
 def evaluate():
     global possible_timetables
-    global state
+    global events
     if (state != "Suche"):
         next_state()
 
         # Remove empty events
         empty_events = []
-        for name, event in events.items():
+        for name, event in all_events.items():
             marked = FALSE
             for weekday in event.values():
                 for slot in weekday:
@@ -385,7 +434,8 @@ def evaluate():
             if (not marked):
                 empty_events.append(name)
         for name in empty_events:
-            del events[name]
+            del all_events[name]
+        events = all_events
 
     # Search for all possible timetables
     lectures = {}
@@ -430,7 +480,7 @@ def evaluate():
 
 def save_file():
     output = ""
-    for name, event in events.items():
+    for name, event in all_events.items():
         name = name.replace("Ä", "&$AE")
         name = name.replace("Ö", "&$OE")
         name = name.replace("Ü", "&$UE")
@@ -450,6 +500,7 @@ def save_file():
 
 
 def load_file():
+    global all_events
     global events
     global temp
 
@@ -465,21 +516,22 @@ def load_file():
             data = input.split("::\n")
 
             # Load tutorials
-            events = {}
+            all_events = {}
             for datum in data:
                 event = datum.split(";;")
                 name = event[0]
                 del event[0]
-                events[name] = {}
+                all_events[name] = {}
                 for weekday, day in zip(weekdays, event):
-                    events[name][weekday] = []
+                    all_events[name][weekday] = []
                     for slot in day.split(",,"):
-                        events[name][weekday].append(slot)
-                    del events[name][weekday][slots]
-            del events[""]
+                        all_events[name][weekday].append(slot)
+                    del all_events[name][weekday][slots]
+            del all_events[""]
 
         temp = {}
         messagebox.showinfo("Hinweis", "Datei erfolgreich geladen.", icon="info")
+        events = all_events
         evaluate()
     except Exception as error:
         messagebox.showinfo("Fehlermeldung", "Fehler beim Zugriff auf die Datei!", icon="error")
@@ -495,6 +547,7 @@ state = "Eingabe"
 slots = len(timeslots)
 days = len(weekdays)
 events = {}
+all_events = {}
 temp = {}
 for weekday in weekdays:
     temp[weekday] = [""] * slots
@@ -516,7 +569,7 @@ menu_bar.add_command(label="Laden", command=load_file)
 
 # Create window objects
 spacer = []
-for i in range(0, 3):
+for i in range(0, 4):
     spacer.append(Label(window, text=""))
 
 heading = Label(window, text="Lorem ipsum")
@@ -555,6 +608,7 @@ latest_slot_label = Label(window, text="Späteste Uhrzeit:")
 
 continue_button = Button(window, text="Weiter", command=next_state)
 finished_button = Button(window, text="Fertig", command=evaluate)
+select_events_button = Button(window, text="Module auswählen", command=load_select_UI)
 show_results_button = Button(window, text="0 Ergebnisse anzeigen", command=lambda: load_timetable_UI("Ergebnisse", get_results(possible_timetables)))
 
 title_label = Label(window, text="Gib den Namen der Veranstaltung ein:")
